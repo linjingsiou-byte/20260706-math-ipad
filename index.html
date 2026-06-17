@@ -1899,15 +1899,23 @@
       const pathname = window.location.pathname;
       let joinUrl = "";
       
-      if (origin === "file://" || origin.startsWith("file:")) {
-        // 本地預覽使用預設 GitHub Pages 範例網址
-        const githubUser = 'linjingsiou-byte';
-        joinUrl = `https://${githubUser}.github.io/20260706-math-ipad/?join=true`;
-      } else {
-        joinUrl = origin + pathname + "?join=true";
+      const configStr = localStorage.getItem('firebaseConfig');
+      let params = "";
+      if (configStr) {
+        try {
+          const config = JSON.parse(configStr);
+          params = "&k=" + encodeURIComponent(config.apiKey) + "&d=" + encodeURIComponent(config.databaseURL) + "&p=" + encodeURIComponent(config.projectId) + "&a=" + encodeURIComponent(config.appId);
+        } catch (e) {}
       }
 
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(joinUrl)}`;
+      if (origin === "file://" || origin.startsWith("file:")) {
+        const githubUser = 'linjingsiou-byte';
+        joinUrl = "https://" + githubUser + ".github.io/20260706-math-ipad/?join=true" + params;
+      } else {
+        joinUrl = origin + pathname + "?join=true" + params;
+      }
+
+      const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(joinUrl);
       
       const qrThumb = document.getElementById('joinQrThumb');
       if (qrThumb) qrThumb.src = qrUrl;
@@ -2133,7 +2141,7 @@
       
       if (isFirebaseConnected && firebaseDb) {
         const wordKey = sanitizeFirebaseKey(text);
-        const wordRef = firebaseDb.ref(`wordcloud/q\${currentQNum}/\${wordKey}`);
+        const wordRef = firebaseDb.ref('wordcloud/q' + currentQNum + '/' + wordKey);
         wordRef.transaction(currentData => {
           if (currentData) {
             return {
@@ -2171,7 +2179,7 @@
     function clearLocalWordCloud() {
       if (confirm("確定要清空當前題目的所有文字雲資料嗎？")) {
         if (isFirebaseConnected && firebaseDb) {
-          firebaseDb.ref(`wordcloud/q\${currentQNum}`).remove();
+          firebaseDb.ref('wordcloud/q' + currentQNum).remove();
         } else {
           wordCloudData[currentQNum] = [];
           renderWordCloud();
@@ -2191,12 +2199,30 @@
       const joinContainer = document.getElementById('joinContainer');
       if (joinContainer) joinContainer.style.display = 'flex';
 
-      // 載入設定
+      // 1. 優先嘗試從網址參數讀取 Config (用於講者將 Config 透過 QR Code 動態分享給學員)
+      const urlParams = new URLSearchParams(window.location.search);
       let config = null;
-      const configStr = localStorage.getItem('firebaseConfig');
-      if (configStr) {
-        try { config = JSON.parse(configStr); } catch(e) {}
+      
+      if (urlParams.has('k') && urlParams.has('d')) {
+        config = {
+          apiKey: urlParams.get('k'),
+          databaseURL: urlParams.get('d'),
+          projectId: urlParams.get('p') || '',
+          appId: urlParams.get('a') || ''
+        };
+        // 儲存於學員本地，方便刷新網頁或斷線重連
+        localStorage.setItem('firebaseConfig', JSON.stringify(config));
       }
+
+      // 2. 若網址無參數，則從 localStorage 讀取
+      if (!config) {
+        const configStr = localStorage.getItem('firebaseConfig');
+        if (configStr) {
+          try { config = JSON.parse(configStr); } catch(e) {}
+        }
+      }
+      
+      // 3. 最後嘗試讀取預設設定
       if (!config && typeof DEFAULT_FIREBASE_CONFIG !== 'undefined' && DEFAULT_FIREBASE_CONFIG) {
         config = DEFAULT_FIREBASE_CONFIG;
       }
@@ -2239,7 +2265,7 @@
 
     function showJoinError(msg) {
       const titleEl = document.getElementById('joinQuestionTitle');
-      if (titleEl) titleEl.innerHTML = `<span style="color: #ff4d4d; font-weight: bold;">\${msg}</span>`;
+      if (titleEl) titleEl.innerHTML = '<span style="color: #ff4d4d; font-weight: bold;">' + msg + '</span>';
       document.getElementById('joinInputArea').style.display = 'none';
     }
 
@@ -2266,7 +2292,7 @@
         try {
           const db = firebase.database();
           const wordKey = sanitizeFirebaseKey(text);
-          db.ref(`wordcloud/q\${currentQNum}/\${wordKey}`).transaction(currentData => {
+          db.ref('wordcloud/q' + currentQNum + '/' + wordKey).transaction(currentData => {
             if (currentData) {
               return {
                 text: text,
