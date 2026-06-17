@@ -693,12 +693,18 @@
               <span style="font-size: 14px; background: rgba(16, 185, 129, 0.1); padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(16,185,129,0.2);">#優雅備課</span>
             </div>
           </div>
-          <div class="content-right">
-            <div style="width: 260px; height: 260px; border-radius: 40px; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; justify-content: center; align-items: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3); transform: rotate(-5deg);">
+          <div class="content-right" style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;">
+            <div style="width: 240px; height: 140px; border-radius: 24px; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.25); transform: rotate(-3deg);">
               <div style="text-align: center; color: white;">
-                <div style="font-size: 68px;">iPad</div>
-                <div style="font-size: 20px; font-weight: 700; letter-spacing: 2px;">✕ iWork</div>
+                <div style="font-size: 44px; font-weight: bold; line-height: 1.1;">iPad</div>
+                <div style="font-size: 16px; font-weight: 700; letter-spacing: 2px; margin-top: 5px;">✕ iWork</div>
               </div>
+            </div>
+            
+            <!-- 講者放映端：現場學員掃碼互動 QR Code 卡片 -->
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); border: 1.5px solid var(--theme-border); border-radius: 20px; padding: 15px 20px; width: 240px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://linjingsiou-byte.github.io/20260706-math-ipad/" alt="線上簡報 QR Code" onclick="openModal('https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=https://linjingsiou-byte.github.io/20260706-math-ipad/')" style="width: 120px; height: 120px; border-radius: 8px; border: 2.5px solid white; background: white; cursor: zoom-in;" title="點擊放大 QR Code">
+              <span style="font-size: 13px; font-weight: bold; color: var(--accent); text-align: center; line-height: 1.3;">📱 掃描進入線上互動簡報</span>
             </div>
           </div>
         </div>
