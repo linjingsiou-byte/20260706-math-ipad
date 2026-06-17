@@ -1,0 +1,2386 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>從備課到課堂實踐！用 iPad 與數位資源打造中低年級數學「有感」課堂</title>
+  <style>
+    /* --- 全域設計系統與 Glassmorphism 配色 --- */
+    :root {
+      --bg-dark: #090d16;
+      --bg-light: #f8fafc;
+      --card-bg-dark: rgba(17, 24, 39, 0.78);
+      --card-bg-light: rgba(255, 255, 255, 0.88);
+      --text-dark: #f8fafc;
+      --text-light: #0f172a;
+      --primary: #3b82f6;
+      --secondary: #a855f7;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --border-dark: rgba(255, 255, 255, 0.08);
+      --border-light: rgba(0, 0, 0, 0.08);
+      
+      --theme-bg: var(--bg-dark);
+      --theme-card: var(--card-bg-dark);
+      --theme-text: var(--text-dark);
+      --theme-border: var(--border-dark);
+      --theme-shadow: rgba(0, 0, 0, 0.4);
+    }
+
+    body.light-mode {
+      --theme-bg: var(--bg-light);
+      --theme-card: var(--card-bg-light);
+      --theme-text: var(--text-light);
+      --theme-border: var(--border-light);
+      --theme-shadow: rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--theme-bg);
+      color: var(--theme-text);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+
+    /* --- 背景裝飾 --- */
+    .bg-glow {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+      filter: blur(60px);
+      z-index: 1;
+      pointer-events: none;
+    }
+    .glow-1 { top: -10%; left: -10%; }
+    .glow-2 { bottom: -10%; right: -10%; background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(0,0,0,0) 70%); }
+
+    /* --- 簡報主容器 (Scale-to-fit 16:9) --- */
+    .presentation-container {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      background: var(--theme-card);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--theme-border);
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -12px var(--theme-shadow);
+      overflow: hidden;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      transform-origin: center center;
+      transition: background-color 0.5s ease, border-color 0.5s ease;
+    }
+
+    /* --- 控制列 (Top bar) --- */
+    .top-bar {
+      height: 60px;
+      padding: 0 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--theme-border);
+      z-index: 100;
+    }
+    .brand-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: var(--primary);
+      text-transform: uppercase;
+    }
+    .top-controls {
+      display: flex;
+      gap: 15px;
+    }
+    .btn-control {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--theme-border);
+      color: var(--theme-text);
+      padding: 6px 14px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.3s ease;
+    }
+    .btn-control:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    /* --- Slide 內容區域 --- */
+    .slides-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 40px 60px;
+      opacity: 0;
+      transform: translateX(120px);
+      pointer-events: none;
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .slide.past {
+      opacity: 0;
+      transform: translateX(-120px);
+    }
+
+    /* --- 簡報排版元素 - 字體放大升級 --- */
+    .slide-header {
+      margin-bottom: 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .slide-category {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--secondary);
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+    .slide-title {
+      font-size: 40px;
+      font-weight: 800;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .time-badge {
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .slide-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: center;
+    }
+
+    .slide-body.full-width {
+      grid-template-columns: 1fr;
+      align-items: flex-start;
+    }
+
+    .content-left {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .content-right {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+    }
+
+    h3 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--theme-text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    p {
+      font-size: 20px;
+      line-height: 1.6;
+      color: var(--theme-text);
+      opacity: 0.88;
+    }
+
+    ul {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    li {
+      font-size: 20px;
+      line-height: 1.5;
+      position: relative;
+      padding-left: 28px;
+      color: var(--theme-text);
+      opacity: 0.92;
+    }
+
+    li::before {
+      content: "✦";
+      position: absolute;
+      left: 0;
+      top: 2px;
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    li.highlight::before {
+      color: var(--secondary);
+    }
+
+    /* 醒目提示框 */
+    .alert-box {
+      background: rgba(168, 85, 247, 0.08);
+      border-left: 5px solid var(--secondary);
+      padding: 18px 24px;
+      border-radius: 0 16px 16px 0;
+      margin-top: 15px;
+    }
+    .alert-box p {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--theme-text);
+    }
+
+    /* --- 導覽與進度條 --- */
+    .bottom-bar {
+      height: 60px;
+      padding: 0 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--theme-border);
+      z-index: 100;
+    }
+    .slide-number {
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0.6;
+    }
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-nav {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--theme-border);
+      color: var(--theme-text);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.3s ease;
+      font-weight: bold;
+    }
+    .btn-nav:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .progress-bar-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 101;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* --- CSS 垂直分數樣式 (OMML風格網頁排版) --- */
+    .math-frac {
+      display: inline-flex;
+      flex-direction: column;
+      vertical-align: middle;
+      text-align: center;
+      font-size: 85%;
+      line-height: 1.05;
+      margin: 0 0.15em;
+    }
+    .math-num {
+      border-bottom: 2px solid currentColor;
+      padding: 0 4px 1px 4px;
+      display: block;
+      font-weight: bold;
+    }
+    .math-den {
+      padding: 2px 4px 0 4px;
+      display: block;
+      font-weight: bold;
+    }
+
+    /* --- 互動教具專用樣式 --- */
+    /* 1. 分數拼圖互動區 */
+    .fraction-tool-box {
+      width: 420px;
+      height: 380px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px dashed var(--theme-border);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      padding: 20px;
+    }
+    .fraction-circle {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      border: 4px solid var(--theme-text);
+      position: relative;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      transition: all 0.3s ease;
+    }
+    .fraction-slice {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform-origin: 50% 50%;
+    }
+    .fraction-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-fraction {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+    .btn-fraction:hover {
+      background: var(--secondary);
+    }
+    .fraction-label {
+      margin-top: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 2. 小數定位板進位互動區 */
+    .decimal-tool-box {
+      width: 480px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--theme-border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .decimal-board {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      width: 100%;
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid var(--theme-border);
+    }
+    .decimal-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .col-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--secondary);
+      border-bottom: 2px solid var(--secondary);
+      padding-bottom: 4px;
+      width: 80%;
+      text-align: center;
+    }
+    .col-value {
+      font-size: 36px;
+      font-weight: bold;
+    }
+    .decimal-dot-col {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 48px;
+      font-weight: bold;
+      color: var(--primary);
+      padding: 0 10px;
+    }
+    .blocks-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: center;
+      min-height: 60px;
+      width: 100%;
+    }
+    .toy-block {
+      width: 14px;
+      height: 14px;
+      background-color: var(--accent);
+      border-radius: 2px;
+      animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    .toy-strip {
+      width: 14px;
+      height: 110px;
+      background-color: var(--secondary);
+      border-radius: 4px;
+      animation: popIn 0.5s ease;
+    }
+
+    /* 3. 條件式反白互動表格 */
+    .conditional-table-box {
+      width: 480px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--theme-border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .interactive-table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 15px;
+    }
+    .interactive-table th, .interactive-table td {
+      border: 1px solid var(--theme-border);
+      padding: 12px;
+      text-align: center;
+      font-size: 16px;
+    }
+    .interactive-table th {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--primary);
+      font-weight: bold;
+    }
+    .input-cell {
+      width: 75px;
+      padding: 6px;
+      text-align: center;
+      background: transparent;
+      border: 1px solid var(--theme-border);
+      color: var(--theme-text);
+      font-size: 18px;
+      border-radius: 4px;
+      outline: none;
+      transition: all 0.3s;
+    }
+    .input-cell.correct {
+      background: rgba(245, 158, 11, 0.25) !important;
+      border-color: var(--warning) !important;
+      color: var(--warning) !important;
+      font-weight: bold;
+    }
+    .input-cell.wrong {
+      color: #ff4d4d !important;
+      border-color: #ff4d4d !important;
+      font-weight: bold;
+    }
+
+    /* 4. AI共創工作流進度軸 */
+    .ai-flow-container {
+      width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--theme-border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .ai-flow-step {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 12px 18px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .ai-flow-step:hover, .ai-flow-step.active {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+    .flow-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .ai-flow-step.active .flow-badge {
+      background: var(--secondary);
+    }
+    .flow-title {
+      font-size: 16px;
+      font-weight: bold;
+      flex: 1;
+    }
+    .flow-content-box {
+      border-top: 1px solid var(--theme-border);
+      padding-top: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      opacity: 0.95;
+      min-height: 90px;
+      color: var(--accent);
+    }
+
+    /* --- 時間軸與卡片設計 --- */
+    .agenda-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      width: 100%;
+    }
+    .agenda-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--theme-border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .agenda-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-5px);
+      border-color: var(--primary);
+    }
+    .agenda-number {
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--primary);
+      opacity: 0.6;
+    }
+    .agenda-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .agenda-time {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--warning);
+      background: rgba(245, 158, 11, 0.1);
+      padding: 4px 10px;
+      border-radius: 6px;
+      align-self: flex-start;
+    }
+    .agenda-desc {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+
+  <div class="presentation-container" id="presentationContainer">
+    
+    <!-- 頂部控制列 -->
+    <div class="top-bar">
+      <div class="brand-title">Mathematics Workshop 2026</div>
+      <div class="top-controls">
+        <button class="btn-control" id="btnToggleTheme" onclick="toggleTheme()">
+          <span id="themeText">☼ 淺色模式</span>
+        </button>
+        <button class="btn-control" id="btnFullscreen" onclick="toggleFullscreen()">
+          ⛶ 全螢幕投影
+        </button>
+      </div>
+    </div>
+
+    <!-- 簡報內容包裝 (總共 20 個 Slides) -->
+    <div class="slides-wrapper" id="slidesWrapper">
+
+      <!-- SLIDE 1: 封面 -->
+      <div class="slide active" id="slide-0">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">教師研習專用簡報</div>
+            <div class="slide-title" style="font-size: 44px; margin-top: 10px;">從備課到課堂實踐！</div>
+          </div>
+          <span class="time-badge">3小時專題研習</span>
+        </div>
+        <div class="slide-body" style="grid-template-columns: 1.25fr 0.75fr;">
+          <div class="content-left" style="justify-content: center; gap: 28px;">
+            <h2 style="font-size: 38px; font-weight: 800; line-height: 1.3; color: var(--theme-text);">
+              用 iPad 與數位資源打造中低年級數學<br><span style="color: var(--secondary);">「有感」</span>課堂
+            </h2>
+            <p style="font-size: 20px; opacity: 0.85; line-height: 1.5;">
+              適合對象：全國國小中低年級數學教師、資訊融入教學社群<br>
+              特色主題：iWork實戰案例 ✕ AI Agent共作網頁歷程
+            </p>
+            <div style="display: flex; gap: 15px; margin-top: 5px;">
+              <span style="font-size: 14px; background: rgba(59, 130, 246, 0.1); padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(59,130,246,0.2);">#iPad✕iWork</span>
+              <span style="font-size: 14px; background: rgba(168, 85, 247, 0.1); padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(168,85,247,0.2);">#AI共作教具</span>
+              <span style="font-size: 14px; background: rgba(16, 185, 129, 0.1); padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(16,185,129,0.2);">#優雅備課</span>
+            </div>
+          </div>
+          <div class="content-right">
+            <div style="width: 260px; height: 260px; border-radius: 40px; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; justify-content: center; align-items: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3); transform: rotate(-5deg);">
+              <div style="text-align: center; color: white;">
+                <div style="font-size: 68px;">iPad</div>
+                <div style="font-size: 20px; font-weight: 700; letter-spacing: 2px;">✕ iWork</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+            <!-- SLIDE 2: 講師自我介紹 [新增] -->
+      <div class="slide" id="slide-1">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Lecturer Profile</div>
+            <div class="slide-title">關於講師</div>
+          </div>
+          <span class="time-badge">主講人簡介</span>
+        </div>
+        <div class="slide-body" style="grid-template-columns: 0.8fr 1.2fr; align-items: flex-start; padding-top: 15px;">
+          <div class="content-left" style="margin-top: 10px;">
+            <h3>中年級共備社群種子教師</h3>
+            <p>致力於推動數學共備與行動學習，將 iPad ✕ iWork 技術融入課堂，為中低年級打造「有感」的數學探究環境。</p>
+            <ul>
+              <li>國小數學社群共同發起人與研習講師</li>
+              <li>「魔法分數烘培屋」入口傳送門與遊戲共作開發</li>
+            </ul>
+          </div>
+          <div class="content-right" style="align-items: flex-start;">
+            <img src="講師自我介紹.png" alt="講師自我介紹" onclick="openModal('講師自我介紹.png')" style="max-height: 370px; max-width: 100%; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 2.5px solid var(--theme-border); transition: all 0.3s ease; cursor: zoom-in; margin-top: 5px;">
+          </div>
+        </div>
+      </div>
+
+<!-- SLIDE 3: 研習大綱 -->
+      <div class="slide" id="slide-2">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Workshop Overview</div>
+            <div class="slide-title">今天研習的核心大綱</div>
+          </div>
+          <span class="time-badge">課程規劃表</span>
+        </div>
+        <div class="slide-body full-width">
+          <div class="agenda-grid" style="margin-top: 15px;">
+            
+            <div class="agenda-card">
+              <div class="agenda-number">01</div>
+              <div class="agenda-title">數位轉型，從優雅備課開始</div>
+              <div class="agenda-time">75 分鐘</div>
+              <div class="agenda-desc">深入三、四年級「分數與小數」的備課盲點。引導「單位管理」、「兩個名字」與「滿十進位」的具體心象。</div>
+            </div>
+
+            <div class="agenda-card">
+              <div class="agenda-number">02</div>
+              <div class="agenda-title">iPad ✕ iWork：課堂備課好幫手</div>
+              <div class="agenda-time">50 分鐘</div>
+              <div class="agenda-desc">分享 iPad 真實教學包，實作「透明平方公分板」與「條件式反白學習單」，以及學生的「說數學」螢幕錄影。</div>
+            </div>
+
+            <div class="agenda-card">
+              <div class="agenda-number">03</div>
+              <div class="agenda-title">自製網頁解密與AI人機共創</div>
+              <div class="agenda-time">40 分鐘</div>
+              <div class="agenda-desc">以「魔法分數烘培屋」為例，解密如何運用 AI Agent 一起共作發想、討論、修改與部署互動教學網頁。</div>
+            </div>
+
+          </div>
+          <div class="alert-box" style="width: 100%; margin-top: 25px;">
+            <p>💡 <b>現場互動：</b>本簡報內嵌了我們共作的分數、小數以及 iWork 條件式反白互動元件，投影片播放時即可現場示範！</p>
+          </div>
+        </div>
+      </div>
+
+      
+      <!-- SLIDE 4: 現場互動 - 即時文字雲 [新增] -->
+      <div class="slide" id="slide-3">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Interactive Session</div>
+            <div class="slide-title">現場互動：老師的想法即時文字雲</div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span class="time-badge" style="background: rgba(16, 185, 129, 0.12); border-color: var(--accent); color: var(--accent); margin-right: 0;">互動二選一</span>
+            <button class="btn-control" onclick="openWcSettings()" style="padding: 6px 10px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; height: 32px; gap: 4px; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.05); border: 1px solid var(--theme-border); color: var(--theme-text); cursor: pointer;">
+              ⚙ 設定 Firebase
+            </button>
+          </div>
+        </div>
+        <div class="slide-body" style="grid-template-columns: 0.9fr 1.1fr; gap: 35px; align-items: center;">
+          <div class="content-left" style="gap: 15px;">
+            <p style="font-size: 19px; opacity: 0.95; line-height: 1.5; border-left: 4px solid var(--accent); padding-left: 12px; margin-bottom: 5px;">
+              請選擇題目並輸入關鍵詞（稍後將與 Firebase 資料庫連線）：
+            </p>
+            
+            <!-- 題目選擇鈕 -->
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+              <button class="btn-fraction" id="btnQ1" onclick="switchWordCloudQuestion(1)" style="flex: 1; padding: 10px; font-size: 15px; border-radius: 8px;">題目一：卡關概念</button>
+              <button class="btn-fraction" id="btnQ2" onclick="switchWordCloudQuestion(2)" style="flex: 1; padding: 10px; font-size: 15px; background-color: rgba(255,255,255,0.05); color: var(--theme-text); border: 1px solid var(--theme-border); border-radius: 8px;">題目二：數位關鍵詞</button>
+            </div>
+            
+            <!-- 題目顯示 -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--theme-border); border-radius: 12px; padding: 16px; min-height: 90px; display: flex; align-items: center;">
+              <h4 id="wcQuestionTitle" style="font-size: 18px; font-weight: 700; line-height: 1.45; text-align: left; color: var(--theme-text);">
+                ❓ 題目一：在您班上，中低年級孩子學習數學時，最讓您頭痛的「卡關概念」是哪一個？
+              </h4>
+            </div>
+
+            <!-- 輸入區域 -->
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+              <input type="text" id="wcInput" class="input-cell" placeholder="輸入關鍵詞 (1-6字)..." style="flex: 1; height: 44px; text-align: left; padding: 0 15px; font-size: 16px; border-radius: 8px;" onkeydown="if(event.key==='Enter') submitLocalWord()">
+              <button class="btn-fraction" onclick="submitLocalWord()" style="height: 44px; padding: 0 20px; font-size: 16px; border-radius: 8px;">送出詞彙</button>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+              <span id="firebaseStatus" style="font-size: 13px; color: var(--warning); font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                ⚠️ Firebase 狀態：本地模擬 (未設定)
+              </span>
+              <button class="btn-control" onclick="clearLocalWordCloud()" style="padding: 4px 10px; font-size: 11px; cursor: pointer;">清空字雲</button>
+            </div>
+
+            <!-- 手機掃碼加入小區塊 -->
+            <div id="qrCodeSection" style="display: none; align-items: center; gap: 15px; margin-top: 15px; background: rgba(255,255,255,0.02); border: 1px solid var(--theme-border); border-radius: 12px; padding: 10px 15px;">
+              <div id="joinQrThumbContainer" style="cursor: zoom-in;" onclick="zoomJoinQr()">
+                <!-- 動態生成的 QR Code 縮圖 -->
+                <img id="joinQrThumb" src="" alt="掃碼加入" style="width: 70px; height: 70px; border-radius: 4px; border: 2px solid white; background: white; object-fit: contain;">
+              </div>
+              <div style="flex: 1; text-align: left;">
+                <div style="font-size: 14px; font-weight: bold; color: var(--accent);">📱 現場教師手機作答：</div>
+                <div style="font-size: 12.5px; opacity: 0.85; margin-top: 2px; line-height: 1.4;">
+                  掃描左側二維碼或在瀏覽器開啟：<br>
+                  <a id="joinUrlText" href="#" target="_blank" style="color: var(--primary); text-decoration: underline; word-break: break-all; font-family: monospace;">...</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="content-right">
+            <!-- 文字雲畫布容器 -->
+            <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--theme-border); border-radius: 20px; width: 100%; height: 380px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;" id="wordCloudContainer">
+              <div id="wordCloudPlaceholder" style="font-size: 16px; opacity: 0.4; pointer-events: none;">等待現場老師輸入關鍵詞...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+<!-- SLIDE 5: 引言 (1/2) - 傳統計算瓶頸 -->
+      <div class="slide" id="slide-4">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Introduction (1/2)</div>
+            <div class="slide-title">傳統數學課堂面臨的瓶頸</div>
+          </div>
+          <span class="time-badge">引言</span>
+        </div>
+        <div class="slide-body full-width">
+          <div class="content-left" style="gap: 24px; max-width: 1000px;">
+            <h3>學生常常一放長假，概念就 Reset 了？</h3>
+            <p>傳統的低中高數學教學高度依賴「背誦公式」與「反覆紙筆計算」，這常導致：</p>
+            <ul>
+              <li><b>流於步驟記憶</b>：學生能寫出直式，但不知道「為什麼這樣對齊」或「為什麼要借位」。</li>
+              <li><b>缺乏具體量感</b>：數字在大腦中是抽象孤立的，沒有對應的實物模型（量感薄弱）。</li>
+              <li><b>概念容易遺忘</b>：因為死記硬背，放完連假或寒暑假，先前所學的規則極易被自動清除。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 6: 引言 (2/2) - 會算不會說的危險 -->
+      <div class="slide" id="slide-5">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Introduction (2/2)</div>
+            <div class="slide-title">會算不等於理解！共備警示</div>
+          </div>
+          <span class="time-badge">引言</span>
+        </div>
+        <div class="slide-body">
+          <div class="content-left">
+            <h3>「會算不會說」的危機</h3>
+            <p>如果孩子只學會了計算規約，卻說不出數學背後的道理，那他的數學知識只是建立在流沙上：</p>
+            <ul>
+              <li><b>無法遷移到新題目</b>：題目敘述一變形，或者情境稍微調整，學生立刻不知如何列式。</li>
+              <li><b>無法自我檢驗糾錯</b>：因為不知道每一步算出來的意義，算錯時也無從發現答案的荒謬性。</li>
+            </ul>
+          </div>
+          <div class="content-right">
+            <div style="background: rgba(255, 99, 132, 0.08); border: 1px solid rgba(255, 99, 132, 0.15); border-radius: 16px; padding: 24px; text-align: left; width: 100%;">
+              <h4 style="color: #ff6384; font-size: 20px; font-weight: 700; margin-bottom: 10px;">⚠️ 共備手冊重點提示：</h4>
+              <p style="font-size: 16px; line-height: 1.6; opacity: 0.95;">
+                「在課堂上，我們應要求學生一邊操作一邊口述。說得出邏輯的知識，才是能帶得走的真正能力。這就是為什麼我們要推動『說數學』和引導具體『心象』。」
+              </p>
+              <div style="margin-top: 15px; font-size: 14px; color: var(--secondary); font-weight: 600;">—— 摘自四年級共備筆記（四則運算單元）</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+      
+      
+      <!-- SLIDE 7: 數學不會，怎麼學會？ [新增] -->
+      <div class="slide" id="slide-6">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Pedagogical Reflection</div>
+            <div class="slide-title">數學不會，怎麼學會？</div>
+          </div>
+          <span class="time-badge">課堂反思</span>
+        </div>
+        <div class="slide-body full-width" style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px;">
+          <p style="font-size: 20px; line-height: 1.5; opacity: 0.95; font-weight: 600; text-align: center; margin-bottom: 5px;">
+            在面對不會的題目時，如何引導學生從卡關走向看懂？
+          </p>
+          
+          <!-- 三張照片並列 -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 1100px; justify-content: center; align-items: center;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <img src="1.webp" alt="教學步驟 1" onclick="openModal('1.webp')" style="max-height: 330px; max-width: 100%; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.25); border: 2px solid var(--theme-border); cursor: zoom-in; transition: all 0.3s ease;">
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <img src="2.webp" alt="教學步驟 2" onclick="openModal('2.webp')" style="max-height: 330px; max-width: 100%; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.25); border: 2px solid var(--theme-border); cursor: zoom-in; transition: all 0.3s ease;">
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <img src="3.webp" alt="教學步驟 3" onclick="openModal('3.webp')" style="max-height: 330px; max-width: 100%; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.25); border: 2px solid var(--theme-border); cursor: zoom-in; transition: all 0.3s ease;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+<!-- SLIDE 8: 許扶堂主任的教學心法 [新增] -->
+      <div class="slide" id="slide-7">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Pedagogical Tips</div>
+            <div class="slide-title">許扶堂主任的教學心法建議</div>
+          </div>
+          <span class="time-badge">備課心法</span>
+        </div>
+        <div class="slide-body">
+          <div class="content-left">
+            <p style="font-size: 20px; line-height: 1.5; opacity: 0.95; margin-bottom: 12px; border-left: 4px solid var(--primary); padding-left: 15px; font-weight: 600;">
+              要讓數學課堂「有感」，許主任建議引導孩子建立以下思考模型：
+            </p>
+            <ul style="gap: 12px;">
+              <li style="font-size: 19px; line-height: 1.5;">
+                <b>讀懂題目</b>：從圈選重點開始，抓出核心單位與數量關係，培養自主審題能力。
+              </li>
+              <li style="font-size: 19px; line-height: 1.5;">
+                <b>文字轉成圖</b>：建立具體「心象」與量感。秉持<b>「知道什麼畫什麼」</b>，先畫出已知線索。
+              </li>
+              <li style="font-size: 19px; line-height: 1.5;">
+                <b>文字轉算式</b>：將圖形心象轉為抽象算式。秉持<b>「知道什麼寫什麼」</b>，讓計算列式有理可循。
+              </li>
+              <li class="highlight" style="font-size: 19px; line-height: 1.5;">
+                <b>D咖輔導策略</b>：從<b>「先聽再說」</b>開始。先聆聽同學說理，再試著重複他人邏輯，建立說數學的自信。
+              </li>
+            </ul>
+          </div>
+          <div class="content-right">
+            <!-- 許扶堂教學心法視覺化卡片 (字體放大、版面優化) -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1.5px solid var(--theme-border); border-radius: 20px; padding: 24px; text-align: left; width: 100%; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+              <h4 style="color: var(--secondary); font-size: 22px; font-weight: 800; border-bottom: 1.5px solid var(--theme-border); padding-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                💡 許主任心法工作流
+              </h4>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                
+                <div style="display: flex; align-items: center; gap: 15px;">
+                  <div style="width: 42px; height: 42px; min-width: 42px; border-radius: 50%; background: var(--primary); color: white; display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 18px; box-shadow: 0 4px 10px rgba(59,130,246,0.3);">1</div>
+                  <div>
+                    <div style="font-weight: 700; font-size: 19px; color: var(--theme-text);">圈選重點</div>
+                    <div style="font-size: 15px; opacity: 0.85; margin-top: 1px;">讀懂題目，抓出核心單位與數量關係</div>
+                  </div>
+                </div>
+                
+                <div style="text-align: center; font-size: 15px; color: var(--secondary); margin-left: 21px; line-height: 1; margin-top: -4px; margin-bottom: -4px;">↓</div>
+                
+                <div style="display: flex; align-items: center; gap: 15px;">
+                  <div style="width: 42px; height: 42px; min-width: 42px; border-radius: 50%; background: var(--accent); color: white; display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 18px; box-shadow: 0 4px 10px rgba(16,185,129,0.3);">2</div>
+                  <div>
+                    <div style="font-weight: 700; font-size: 19px; color: var(--theme-text);">文字轉成圖</div>
+                    <div style="font-size: 15px; opacity: 0.85; margin-top: 1px;">建立具體「心象」與量感，動手畫出來</div>
+                  </div>
+                </div>
+                
+                <div style="text-align: center; font-size: 15px; color: var(--secondary); margin-left: 21px; line-height: 1; margin-top: -4px; margin-bottom: -4px;">↓</div>
+                
+                <div style="display: flex; align-items: center; gap: 15px;">
+                  <div style="width: 42px; height: 42px; min-width: 42px; border-radius: 50%; background: var(--warning); color: white; display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 18px; box-shadow: 0 4px 10px rgba(245,158,11,0.3);">3</div>
+                  <div>
+                    <div style="font-weight: 700; font-size: 19px; color: var(--theme-text);">文字轉算式</div>
+                    <div style="font-size: 15px; opacity: 0.85; margin-top: 1px;">轉化為抽象算式，完成邏輯與運算</div>
+                  </div>
+                </div>
+                
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 9: Part 1 分數篇 (1/2) - 單位與兩個名字 -->
+      <div class="slide" id="slide-8">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 1: 優雅備課</div>
+            <div class="slide-title">分數備課 (1/2)：單位管理與兩個名字</div>
+          </div>
+          <span class="time-badge">大綱 1 - 分數</span>
+        </div>
+        <div class="slide-body full-width">
+          <div class="content-left" style="gap: 25px; max-width: 1000px;">
+            <h3>分數教學的頭號殺手：單位混淆</h3>
+            <p>在中年級分數教學中，最大的混亂來源就是單位，我們可以使用以下策略：</p>
+            <ul>
+              <li><b>單位管理 (Unit Management)</b>：
+                每一道分數題目，上課時應限制只能出現<b>兩種單位</b>：整體一的大單位與單位分數的小單位（例如：<span class="math-frac"><span class="math-num">1</span><span class="math-den">11</span></span> 條中的一小份）。
+              </li>
+              <li><b>「兩個名字」策略（核心）</b>：
+                引導孩子明瞭同一個物體具有兩個名字。例如：平分成 10 份的果凍中，1個果凍叫做「1個」（個數名字），也叫「<span class="math-frac"><span class="math-num">1</span><span class="math-den">10</span></span> 盒」（分數名字）。
+              </li>
+              <li><b>釐清「什麼被分」</b>：
+                看到分數如 <span class="math-frac"><span class="math-num">1</span><span class="math-den">11</span></span> 條，永遠先問：「什麼被分？（一條）」、「怎麼分？（平分成 11 份）」。
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 10: Part 1 分數篇 (2/2) - 等值分數拼圖法 -->
+      <div class="slide" id="slide-9">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 1: 優雅備課</div>
+            <div class="slide-title">分數備課 (2/2)：等值分數拼圖</div>
+          </div>
+          <span class="time-badge">大綱 1 - 分數</span>
+        </div>
+        <div class="slide-body">
+          <div class="content-left">
+            <h3>不要給公式，讓學生用手拼出來</h3>
+            <p>分數拼圖是建立等值分數（四年級）最佳的視覺手段：</p>
+            <ul>
+              <li><b>拼圖遊戲起手式</b>：
+                用圓形分數板，讓學生動手拼出與 <span class="math-frac"><span class="math-num">1</span><span class="math-den">2</span></span> 一樣大的形狀（如 2 塊 <span class="math-frac"><span class="math-num">1</span><span class="math-den">4</span></span> 或 4 塊 <span class="math-frac"><span class="math-num">1</span><span class="math-den">8</span></span>）。
+              </li>
+              <li><b>觀察神奇的倍數魔法</b>：
+                寫出 <span class="math-frac"><span class="math-num">1</span><span class="math-den">2</span></span> = <span class="math-frac"><span class="math-num">2</span><span class="math-den">4</span></span> = <span class="math-frac"><span class="math-num">4</span><span class="math-den">8</span></span>，引導學生觀察等號兩側分子與分母同時同乘的倍數魔法。
+              </li>
+              <li class="highlight"><b>避坑提醒</b>：
+                不要一開始用整數「1」來推導，因為 <span class="math-frac"><span class="math-num">2</span><span class="math-den">2</span></span> 到 <span class="math-frac"><span class="math-num">3</span><span class="math-den">3</span></span> 的倍數關係對四年級太難消化，應從真分數開始。
+              </li>
+            </ul>
+          </div>
+          <div class="content-right">
+            <!-- 互動分數圓形教具 -->
+            <div class="fraction-tool-box">
+              <h4 style="font-size: 14px; margin-bottom: 10px;">動態分數圓形拼圖展示</h4>
+              <div class="fraction-circle" id="interactiveCircle"></div>
+              <div class="fraction-label" id="fractionLabel">目前等值：<span class="math-frac"><span class="math-num">1</span><span class="math-den">2</span></span> 圓 (平分成 2 份中的 1 份)</div>
+              <div class="fraction-controls">
+                <button class="btn-fraction" onclick="setFraction(2)"><span class="math-frac"><span class="math-num">1</span><span class="math-den">2</span></span> 圓</button>
+                <button class="btn-fraction" onclick="setFraction(4)"><span class="math-frac"><span class="math-num">2</span><span class="math-den">4</span></span> 圓</button>
+                <button class="btn-fraction" onclick="setFraction(8)"><span class="math-frac"><span class="math-num">4</span><span class="math-den">8</span></span> 圓</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 11: Part 1 小數篇 (1/2) - 0.10 迷思 -->
+      <!-- SLIDE 12: Part 1 小數篇 (1/2) - 0.10 迷思 -->
+      <div class="slide" id="slide-10">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 1: 優雅備課</div>
+            <div class="slide-title">小數備課 (1/2)：破解 0.10 迷思</div>
+          </div>
+          <span class="time-badge">大綱 1 - 小數</span>
+        </div>
+        <div class="slide-body">
+          <div class="content-left">
+            <h3>從分數國過渡：與小數接軌</h3>
+            <p>小數比分數更抽象，學生在初學時容易受到整數的舊經驗干擾：</p>
+            <ul>
+              <li><b>小數的誕生</b>：
+                一張紙平分成 100 份，其中的 1 份在分數國是 <span class="math-frac"><span class="math-num">1</span><span class="math-den">100</span></span> 張，在小數國就是 0.01 張。
+              </li>
+              <li><b>突破「0.10」的誤區</b>：
+                當累積了 10 個 0.1 時，學生直覺會寫成 0.10。教學時必須利用定位板與具體物（小橘積木條），證明 10 個 0.1 已經滿十，必須向左越過小數點，進位為「1.0」。
+              </li>
+              <li><b>相同單位的相加減</b>：
+                強調「對齊小數點」不是背規則，而是為了「相同單位數量的相加減」（幾個 0.01 加上幾個 0.01）。
+              </li>
+            </ul>
+          </div>
+          <div class="content-right">
+            <img src="分數國.png" alt="分數國" onclick="openModal('分數國.png')" style="max-height: 370px; max-width: 100%; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 2.5px solid var(--theme-border); transition: all 0.3s ease; cursor: zoom-in;">
+          </div>
+        </div>
+      </div>
+      <!-- SLIDE 13: Part 1 小數篇 (2/2) - 補零技巧與定位板 -->
+      <div class="slide" id="slide-11">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 1: 優雅備課</div>
+            <div class="slide-title">小數備課 (2/2)：定位板與直式補零</div>
+          </div>
+          <span class="time-badge">大綱 1 - 小數</span>
+        </div>
+        <div class="slide-body">
+          <div class="content-left">
+            <h3>將隱形的零具體化</h3>
+            <p>對齊和補零是減少學生小數計算錯誤的兩大利器：</p>
+            <ul>
+              <li><b>整數減小數的補零</b>：
+                在計算 1 - 0.6 或 13 - 2.7 時，強烈建議在直式中將整數補上零寫成「1.0」或「13.0」。對齊小數點，就能大幅降低錯誤率。
+              </li>
+              <li class="highlight"><b>課堂防呆：三角辯證法</b>：
+                挑出「寫對」、「寫錯（對齊錯）」與「投降（沒想法）」三種學生。讓寫錯與寫對的學生進行辯論，最後讓沒想法的複述正確邏輯。
+              </li>
+            </ul>
+          </div>
+          <div class="content-right">
+            <!-- 互動小數定位板 -->
+            <div class="decimal-tool-box">
+              <h4 style="font-size: 14px; margin-bottom: 10px;">滿十進位動態定位板</h4>
+              <div class="decimal-board">
+                <div class="decimal-col">
+                  <div class="col-title">個位 (1.0)</div>
+                  <div class="col-value" id="onesVal">0</div>
+                  <div class="blocks-container" id="onesBlocks"></div>
+                </div>
+                <div class="decimal-dot-col">.</div>
+                <div class="decimal-col">
+                  <div class="col-title">十分位 (0.1)</div>
+                  <div class="col-value" id="tenthsVal">0</div>
+                  <div class="blocks-container" id="tenthsBlocks"></div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-fraction" onclick="addTenth(0.1)">增加 0.1</button>
+                <button class="btn-fraction" style="background-color: var(--secondary);" onclick="resetDecimalBoard()">重置</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 14: Part 2 iWork (1/2) - 透明平方公分板與鎖定 -->
+      <div class="slide" id="slide-12">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 2: iPad ✕ iWork</div>
+            <div class="slide-title">iWork 實戰 (1/2)：透明公分板與鎖定</div>
+          </div>
+          <span class="time-badge">大綱 2 - 實作</span>
+        </div>
+        <div class="slide-body full-width">
+          <div class="content-left" style="gap: 25px; max-width: 1000px;">
+            <h3>來自 iPad 的備課操作手冊</h3>
+            <p>善用 iPad 的原生多工與 iWork 技巧，可以自製動態的數位學習單：</p>
+            <ul>
+              <li><b>透明平方公分板（面積單元神技）</b>：
+                在 Keynote/Numbers 建立一個表格，利用多工模式，將表格<b>「直接拖曳」</b>到照片 App 會自動生成透明 PNG 平方公分板。拖回學習單，供學生在 iPad 上自由拖移覆蓋在圖形上，進行面積點數！
+              </li>
+              <li><b>「鎖定」與「解鎖」防止學生誤觸</b>：
+                學生操作學習單時常誤移背景圖。可框選背景物件，使用「刷子 ➔ 排列 ➔ 鎖定」，讓背景防移，學生只能移動分數拼圖或量測板。
+              </li>
+              <li><b>「影像圖庫」讓上傳照片更流暢</b>：
+                拖入影像圖庫元件，學生完成實體教具實作後，可直接點擊「＋」直接調用 iPad 相機拍照上傳記錄。
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 15: Part 2 iWork (2/2) - 條件式反白自回饋學習單 -->
+      <div class="slide" id="slide-13">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 2: iPad ✕ iWork</div>
+            <div class="slide-title">iWork 實戰 (2/2)：條件式反白自回饋</div>
+          </div>
+          <span class="time-badge">大綱 2 - 實作</span>
+        </div>
+        <div class="slide-body">
+          <div class="content-left">
+            <h3>數位學習單的「自動回饋系統」</h3>
+            <p>如何在學習單中加入即時的對錯反饋？我們可以使用「條件式反白」：</p>
+            <ul>
+              <li><b>設定格子規則</b>：
+                點選表格，開啟「刷子 ➔ 輸入格 ➔ 條件式反白 ➔ 加入規則」。
+              </li>
+              <li><b>雙重規則設定</b>：
+                1. 當這格數值等於正確答案（如：8）時，橘色填充。
+                2. 當這格不等於正確答案時，呈現紅字。
+              </li>
+              <li class="highlight"><b>學習效益</b>：
+                答對變色（自動鼓勵），答錯紅字（即時提醒）。學生可以自己修改答案直到格子變色，大幅減少老師批改時間。
+              </li>
+            </ul>
+          </div>
+          <div class="content-right">
+            <!-- 互動式「條件式反白」表格 (垂直分數顯示) -->
+            <div class="conditional-table-box">
+              <h4 style="font-size: 14px; margin-bottom: 10px;">動態模擬：數位學習單的「條件式反白」</h4>
+              <p style="font-size: 13.5px; margin-bottom: 10px; opacity: 0.8; text-align: center;">
+                題目：一盒有 16 顆果凍，吃了 8 顆，是吃了幾分之幾盒？
+              </p>
+              <table class="interactive-table">
+                <tr>
+                  <th>個數名稱</th>
+                  <th>分數名稱 (盒)</th>
+                </tr>
+                <tr>
+                  <td>8 顆</td>
+                  <td>
+                    <!-- 垂直分數輸入格 -->
+                    <div style="display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 5px;">
+                      <input type="text" class="input-cell" id="ansCell2" oninput="checkAnswer()" placeholder="分子" style="border-bottom: 2px solid var(--theme-text); border-radius: 4px 4px 0 0; width: 65px;">
+                      <input type="text" class="input-cell" id="ansCell" oninput="checkAnswer()" placeholder="分母" style="border-radius: 0 0 4px 4px; width: 65px;">
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <div id="checkResult" style="margin-top: 15px; font-size: 14.5px; font-weight: bold; color: var(--warning); text-align: center;">
+                請在輸入格中填入分數的分子與分母
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 16: Part 2 - 平板說數學 -->
+      <div class="slide" id="slide-14">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 2: iPad ✕ iWork</div>
+            <div class="slide-title">「平板說數學」的課堂實踐</div>
+          </div>
+          <span class="time-badge">大綱 2 - 說數學</span>
+        </div>
+        <div class="slide-body">
+          <div class="content-left">
+            <h3>寫出痕跡、說出邏輯，讓知識有效內化</h3>
+            <p>iPad 加上 Apple Pencil，是學生口述思考邏輯的最佳拍檔：</p>
+            <ul>
+              <li><b>邊寫邊錄</b>：
+                讓孩子在 iPad 的 Keynote 或 Numbers 數序模板上書寫計算過程，同時開啟<b>「螢幕錄影+麥克風」</b>。
+              </li>
+              <li><b>說理大於結果</b>：
+                以除法直式為例，要求學生邊錄影邊口述分錢、換錢與個位數相除的過程。
+              </li>
+              <li class="highlight"><b>學習影片診斷</b>：
+                老師能透過學生的影片，精確聽出和診斷學生的迷思（例如是借位錯誤，還是位值概念不熟）。
+              </li>
+            </ul>
+          </div>
+          <div class="content-right">
+            <!-- 說數學平板 MOCKUP -->
+            <div style="width: 440px; height: 280px; background: #202030; border: 8px solid #47475c; border-radius: 24px; position: relative; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; color: white;">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; opacity: 0.6;">
+                <span>iPad 說數學模式</span>
+                <span style="color: #ff4d4d; animation: blink 1s infinite;">● 錄影中 00:24</span>
+              </div>
+              <div style="flex: 1; border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; margin: 6px 0; padding: 10px 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.2);">
+                <!-- 國小直式除法教具元件 (對齊對稱) -->
+                <div style="display: grid; grid-template-columns: 30px 14px 34px 34px; grid-auto-rows: min-content; justify-content: center; align-items: center; font-family: 'Outfit', 'Inter', sans-serif; font-size: 24px; font-weight: bold; color: #ffffff; position: relative; row-gap: 4px; text-align: center; width: 112px; margin: 0 auto;">
+                  
+                  <!-- 直式對齊虛線 -->
+                  <div style="position: absolute; top: 0; bottom: 0; left: 78px; border-left: 1.5px dashed rgba(255, 255, 255, 0.4); z-index: 2;"></div>
+                  
+                  <!-- Row 1: 欄位名稱 (十、個) -->
+                  <div style="grid-column: 3; grid-row: 1; font-size: 14px; color: #a0aec0; font-weight: normal; padding-bottom: 2px; text-align: center;">十</div>
+                  <div style="grid-column: 4; grid-row: 1; font-size: 14px; color: #a0aec0; font-weight: normal; padding-bottom: 2px; text-align: center;">個</div>
+                  
+                  <!-- Row 2: 商 (紅色的 2，對齊十位) -->
+                  <div style="grid-column: 3; grid-row: 2; color: #ff4d4d; padding-bottom: 2px; text-align: center;">2</div>
+                  
+                  <!-- Row 3: 被除數與除數 (3 ) 7 2) -->
+                  <div style="grid-column: 1; grid-row: 3; justify-self: end; padding-right: 4px; text-align: right; color: #ffffff;">3</div>
+                  <div style="grid-column: 2; grid-row: 3; display: flex; justify-content: center; align-items: center;">
+                    <svg width="14" height="34" viewBox="0 0 14 34" fill="none" style="display: block;">
+                      <path d="M13,1 C5,10 5,24 13,33" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div style="grid-column: 3; grid-row: 3; color: #ffffff; border-top: 2px solid white; padding-top: 3px; text-align: center;">7</div>
+                  <div style="grid-column: 4; grid-row: 3; color: #ffffff; border-top: 2px solid white; padding-top: 3px; text-align: center;">2</div>
+                  
+                  <!-- Row 4: 乘積與減法線 (紅色的 6，對齊十位) -->
+                  <div style="grid-column: 3; grid-row: 4; color: #ff4d4d; border-bottom: 2px solid white; padding-bottom: 4px; text-align: center;">6</div>
+                  <div style="grid-column: 4; grid-row: 4; border-bottom: 2px solid white; height: 100%;"></div>
+                  
+                  <!-- Row 5: 餘數 (紅色的 1 2) -->
+                  <div style="grid-column: 3; grid-row: 5; color: #ff4d4d; padding-top: 4px; text-align: center;">1</div>
+                  <div style="grid-column: 4; grid-row: 5; color: #ff4d4d; padding-top: 4px; text-align: center;">2</div>
+                  
+                </div>
+
+                <!-- 說理配音 (精簡尺寸以防溢出) -->
+                <div style="font-size: 13.5px; color: var(--accent); margin-top: 8px; font-weight: bold; text-align: center;">
+                  ➔ 「1個十元換成10個一元！」
+                </div>
+              </div>
+              <div style="display: flex; gap: 4px; justify-content: center; align-items: center; height: 20px;">
+                <div style="width: 4px; height: 10px; background: var(--primary); border-radius: 2px;"></div>
+                <div style="width: 4px; height: 22px; background: var(--primary); border-radius: 2px;"></div>
+                <div style="width: 4px; height: 14px; background: var(--primary); border-radius: 2px;"></div>
+                <div style="width: 4px; height: 30px; background: var(--secondary); border-radius: 2px;"></div>
+                <div style="width: 4px; height: 18px; background: var(--primary); border-radius: 2px;"></div>
+                <div style="width: 4px; height: 8px; background: var(--primary); border-radius: 2px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 17: Part 3 AI共創 (1/2) - 烘焙屋的共創工作流 -->
+      <div class="slide" id="slide-15">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 3: AI人機共創</div>
+            <div class="slide-title">魔法分數烘焙屋：人機共創工作流</div>
+          </div>
+          <span class="time-badge">大綱 3 - AI共創</span>
+        </div>
+        <div class="slide-body full-width">
+          <div class="content-left" style="gap: 25px; max-width: 1000px;">
+            <h3>老師不用寫代碼，也能打造專屬動態教具？</h3>
+            <p>「分數魔法烘焙屋 1.0 ~ 5.0」（適用二至四年級，包含單位分數 <span class="math-frac"><span class="math-num">1</span><span class="math-den">2</span></span>、等值分數 <span class="math-frac"><span class="math-num">2</span><span class="math-den">4</span></span>）是老師與 AI Agent 深度合作的成果：</p>
+            <ul>
+              <li><b>教師的角色：提供教學心象與痛點</b>：
+                老師提出課堂實務經驗（例如：孩子等分割的迷思、需要單位分數累加的量感、等值分數拼圖的需求）。
+              </li>
+              <li><b>AI Agent 的角色：提供技術與機制實現</b>：
+                AI 根據教師需求，設計遊戲情境（烘焙屋接單烤麵包），並在一分鐘內生成 HTML5 遊戲主體代碼。
+              </li>
+              <li class="highlight"><b>迭代修改 (Refining)</b>：
+                老師進行實測並提出修改意見（如：切蛋糕份數不夠直觀），AI 根據意見即時微調，完成流暢精美的互動體驗。
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 18: Part 3 AI共創 (2/2) - 技術突破：環境感知 -->
+      <div class="slide" id="slide-16">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 3: AI人機共創</div>
+            <div class="slide-title">關鍵技術突破：環境感知重導向</div>
+          </div>
+          <span class="time-badge">大綱 3 - AI共創</span>
+        </div>
+        <div class="slide-body">
+          <div class="content-left">
+            <h3>解決現場「離線使用」的技術痛點</h3>
+            <p>在共作過程中，老師和 AI 共同為傳送門設計了 `portal.js` 技術：</p>
+            <ul>
+              <li><b>學校現場沒有網路？</b>：
+                如果把遊戲包下載到隨身碟，在課堂離線開啟，環境感知會自動跳轉「相對路徑」，無網也能玩。
+              </li>
+              <li><b>學生在家用平板連線？</b>：
+                當部署在 GitHub Pages 時，JS 會自動偵測域名並覆寫為「雲端絕對 URL」，確保線上跳轉不掛掉。
+              </li>
+            </ul>
+          </div>
+          <div class="content-right">
+            <!-- AI共創工作流動態展示 -->
+            <div class="ai-flow-container">
+              <h4 style="font-size: 14px; text-align: center; font-weight: 700;">AI x 教師 共創四步驟</h4>
+              
+              <div class="ai-flow-step active" onclick="showFlowStep(1)">
+                <div class="flow-badge">1</div>
+                <div class="flow-title">概念發想 (教學法提供)</div>
+              </div>
+              <div class="ai-flow-step" onclick="showFlowStep(2)">
+                <div class="flow-badge">2</div>
+                <div class="flow-title">快速原型 (HTML碼生成)</div>
+              </div>
+              <div class="ai-flow-step" onclick="showFlowStep(3)">
+                <div class="flow-badge">3</div>
+                <div class="flow-title">遞迴修改 (環境感知設計)</div>
+              </div>
+              <div class="ai-flow-step" onclick="showFlowStep(4)">
+                <div class="flow-badge">4</div>
+                <div class="flow-title">雲端部署 (GitHub Pages)</div>
+              </div>
+              
+              <div class="flow-content-box" id="flowContent">
+                第一步：老師點出三四年級分數痛點（如：離散量轉換、等值分數拼圖）。AI Agent 根據這些迷思，發想「魔法烘焙屋」的接單遊戲情境。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 19: Part 3 - 數位資源與自製網頁的優勢 -->
+      <div class="slide" id="slide-17">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Part 3: 資源與自製網頁</div>
+            <div class="slide-title">數位資源與自製網頁的優勢</div>
+          </div>
+          <span class="time-badge">大綱 3 - 資源</span>
+        </div>
+        <div class="slide-body">
+          <div class="content-left">
+            <h3>從「拿來用」到「客製化」</h3>
+            <p>在數學課堂中，善用合適的數位資源能事半功倍：</p>
+            <ul>
+              <li><b>現有數位資源推薦</b>：
+                *   <b>均一教育平台</b>：適合學生自主練習與概念評量。
+                *   <b>GeoGebra / PhET</b>：具備強大幾何與物理動態模擬，高年級幾何與測量必備。
+              </li>
+              <li class="highlight"><b>自製網頁教具的降維打擊</b>：
+                *   <b>完美客製化</b>：教具完全配合您的備課心象。
+                *   <b>零安裝、無痛開啟</b>：只要有瀏覽器，iPad 或任何電腦均可直接點擊開啟。
+                *   <b>離線本機可用</b>：不依賴網路，儲存在隨身碟中，隨插即用。
+              </li>
+            </ul>
+          </div>
+          <div class="content-right" style="flex-direction: column; gap: 15px;">
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 12px; padding: 20px; text-align: left; width: 100%;">
+              <h4 style="color: var(--accent); font-size: 16px; font-weight: 700; margin-bottom: 8px;">🚀 自製網頁教具示例（本簡報即為例證）</h4>
+              <p style="font-size: 15px; line-height: 1.45; opacity: 0.9;">
+                本份簡報本身就是使用網頁技術 (HTML/CSS/JS) 撰寫的互動系統。在瀏覽器中，我們能隨意嵌入剛剛演示的「等值分數圓」、「小數定位板進位」與「iWork條件式反白表格」。這代表我們可以在一份簡報中，同時進行<b>簡報演講</b>與<b>動態教具演示</b>，備課優雅，課堂流暢！
+              </p>
+            </div>
+            
+            <!-- 講師整理的常用數學數位教具 Padlet -->
+            <div style="background: rgba(59, 130, 246, 0.06); border: 1.5px solid rgba(59, 130, 246, 0.15); border-radius: 12px; padding: 18px 20px; width: 100%; display: flex; align-items: center; gap: 20px; box-sizing: border-box;">
+              <div style="flex: 1; text-align: left;">
+                <h4 style="color: var(--primary); font-size: 16px; font-weight: 700; margin-bottom: 6px;">📋 常用數學數位教具彙整</h4>
+                <p style="font-size: 14px; line-height: 1.45; opacity: 0.95; margin-bottom: 8px;">
+                  這是講師整理的常用數學數位資源與動態教具 Padlet 彙整網頁，歡迎掃描或點擊連結收藏！
+                </p>
+                <a href="https://padlet.com/nehsptsp/padlet-fzoc0z8t0w11fkzv" target="_blank" style="color: var(--primary); font-weight: bold; text-decoration: none; font-size: 13.5px; border-bottom: 1.5px solid var(--primary); padding-bottom: 2px;">
+                  點此開啟 Padlet 網頁 ↗
+                </a>
+              </div>
+              
+              <!-- QR Code 容器 (支援點擊放大) -->
+              <div style="background: white; padding: 6px; border-radius: 8px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.15); min-width: 92px; height: 92px; box-sizing: border-box;">
+                <img src="padlet_qrcode.png" alt="Padlet QR Code" onclick="openModal('padlet_qrcode.png')" style="width: 80px; height: 80px; border-radius: 4px; cursor: zoom-in; display: block;" title="點擊放大 QR Code">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+      <!-- SLIDE 20: 研習金句 - 共同期許 [新增] -->
+      <div class="slide" id="slide-18">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Workshop Slogan</div>
+            <div class="slide-title">研習結語：共同期許</div>
+          </div>
+          <span class="time-badge" style="background: rgba(168, 85, 247, 0.12); border-color: var(--secondary); color: var(--secondary);">帶得走的心法</span>
+        </div>
+        <div class="slide-body full-width" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 100%;">
+          <div style="max-width: 1000px; display: flex; flex-direction: column; gap: 40px; align-items: center;">
+            
+            <!-- 核心金句 (超大漸層字體) -->
+            <div style="background: rgba(255, 255, 255, 0.02); border: 2px dashed rgba(59, 130, 246, 0.25); border-radius: 32px; padding: 45px 60px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); width: 100%; max-width: 950px;">
+              <h2 style="font-size: 44px; font-weight: 800; line-height: 1.5; background: linear-gradient(to right, var(--primary), var(--secondary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                「擁抱科技，讓備課變優雅；<br>引導說理，讓數學變有感！」
+              </h2>
+            </div>
+            
+            <!-- 鼓勵與心態指引 -->
+            <div style="display: flex; flex-direction: column; gap: 15px; max-width: 800px; margin-top: 10px;">
+              <p style="font-size: 22px; line-height: 1.6; opacity: 0.95;">
+                踏出第一步：從圈選重點開始，從嘗試一個自製學習單開始。<br>
+                <b>科技不是為了取代教師</b>，而是為了解放您的時間與心力，<br>
+                讓您能優雅地備課，並把最珍貴的課堂時間，用來引導每個孩子「看見」道理。
+              </p>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 21: 結語與 QA -->
+      <div class="slide" id="slide-19">
+        <div class="slide-header">
+          <div>
+            <div class="slide-category">Conclusion & QA</div>
+            <div class="slide-title">優雅備課，有感學習</div>
+          </div>
+          <span class="time-badge">研習總結</span>
+        </div>
+        <div class="slide-body full-width" style="justify-content: center; align-items: center; text-align: center; height: 100%;">
+          <div style="max-width: 900px; display: flex; flex-direction: column; gap: 24px;">
+            <h2 style="font-size: 34px; font-weight: 800; color: var(--primary);">讓每個孩子都能在數學課堂中「看見」道理</h2>
+            <p style="font-size: 19px; line-height: 1.6; opacity: 0.9;">
+              備課的優雅，來自於對學生迷思的精準預判與系統化教具準備。<br>
+              課堂的「有感」，來自於孩子利用 iPad 說理、拖曳操作自製學習單，並在與 AI 共作中體驗創造。
+            </p>
+            <div class="alert-box" style="background: rgba(59, 130, 246, 0.05); border: 1.5px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 24px 30px;">
+              <h4 style="font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--secondary);">📢 提問與討論</h4>
+              <p style="font-size: 20px; line-height: 1.5;">歡迎各位老師交流：在您班上的數學教學中，孩子最常遇到的卡關點是什麼？您會想如何嘗試運用數位科技或AI 共作呢？</p>
+            </div>
+            <p style="font-size: 14px; opacity: 0.6; margin-top: 10px;">感謝各位老師的參與！祝大家備課愉快，教學有感！</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 底部導覽列 -->
+    <div class="bottom-bar">
+      <div class="slide-number" id="slideNumber">Slide 1 of 20</div>
+      <div class="nav-buttons">
+        <button class="btn-nav" onclick="prevSlide()">◀</button>
+        <button class="btn-nav" onclick="nextSlide()">▶</button>
+      </div>
+    </div>
+    
+    <!-- 頂部進度條 -->
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+  </div>
+
+  <!-- Firebase Realtime Database SDK (v8) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    /* --- Slide 翻頁邏輯與控制引擎 --- */
+    let currentSlideIndex = 0;
+    const slides = document.querySelectorAll('.slide');
+    const slideNumber = document.getElementById('slideNumber');
+    const progressBar = document.getElementById('progressBar');
+    
+    function showSlide(index) {
+      if (index < 0 || index >= slides.length) return;
+      
+      slides.forEach((slide, i) => {
+        slide.classList.remove('active', 'past');
+        if (i === index) {
+          slide.classList.add('active');
+        } else if (i < index) {
+          slide.classList.add('past');
+        }
+      });
+      
+      currentSlideIndex = index;
+      slideNumber.textContent = `Slide ${index + 1} of ${slides.length}`;
+      
+      progressBar.style.width = `${((index + 1) / slides.length) * 100}%`;
+      
+      // Trigger wordcloud rendering when entering Slide 4 (index 3)
+      if (index === 3) {
+        setTimeout(renderWordCloud, 100);
+      }
+    }
+
+    function nextSlide() {
+      if (currentSlideIndex < slides.length - 1) {
+        showSlide(currentSlideIndex + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlideIndex > 0) {
+        showSlide(currentSlideIndex - 1);
+      }
+    }
+
+    // 鍵盤翻頁支援
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevSlide();
+      }
+    });
+
+    // iPad / 觸控滑動翻頁支援
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const slidesWrapper = document.getElementById('slidesWrapper');
+
+    slidesWrapper.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, false);
+
+    slidesWrapper.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipe();
+    }, false);
+
+    function handleSwipe() {
+      const swipeDistance = touchEndX - touchStartX;
+      if (swipeDistance < -80) {
+        nextSlide();
+      } else if (swipeDistance > 80) {
+        prevSlide();
+      }
+    }
+
+    // 全螢幕切換
+    function toggleFullscreen() {
+      const elem = document.documentElement;
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch(err => {
+          alert(`Error trying to enable full-screen mode: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // 深淺主題切換
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+      const isLight = document.body.classList.contains('light-mode');
+      document.getElementById('themeText').textContent = isLight ? '☾ 暗色模式' : '☼ 淺色模式';
+    }
+
+    /* --- 比例自適應 (Scale to Fit) --- */
+    const container = document.getElementById('presentationContainer');
+    function resizePresentation() {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const targetWidth = 1280;
+      const targetHeight = 720;
+      
+      const scaleX = windowWidth / targetWidth;
+      const scaleY = windowHeight / targetHeight;
+      const scale = Math.min(scaleX, scaleY) * 0.95;
+      
+      container.style.transform = `scale(${scale})`;
+    }
+    
+    window.addEventListener('resize', resizePresentation);
+    resizePresentation();
+
+
+    /* --- 互動教具 1: 分數圓形繪製 --- */
+    function setFraction(denominator) {
+      const circle = document.getElementById('interactiveCircle');
+      circle.innerHTML = ''; 
+      
+      const slice = document.createElement('div');
+      slice.className = 'fraction-slice';
+      
+      slice.style.background = 'conic-gradient(var(--secondary) 0deg, var(--secondary) 180deg, rgba(255,255,255,0.05) 180deg, rgba(255,255,255,0.05) 360deg)';
+      circle.appendChild(slice);
+      
+      for (let i = 0; i < denominator; i++) {
+        const line = document.createElement('div');
+        line.style.position = 'absolute';
+        line.style.top = '0';
+        line.style.left = '50%';
+        line.style.width = '2px';
+        line.style.height = '100%';
+        line.style.backgroundColor = 'var(--theme-text)';
+        line.style.transform = `rotate(${(360 / denominator) * i}deg)`;
+        line.style.opacity = '0.5';
+        circle.appendChild(line);
+      }
+      
+      const labels = {
+        2: `目前等值：<span class="math-frac"><span class="math-num">1</span><span class="math-den">2</span></span> 圓 (平分成 2 份中的 1 份)`,
+        4: `目前等值：<span class="math-frac"><span class="math-num">2</span><span class="math-den">4</span></span> 圓 (平分成 4 份中的 2 份)`,
+        8: `目前等值：<span class="math-frac"><span class="math-num">4</span><span class="math-den">8</span></span> 圓 (平分成 8 份中的 4 份)`
+      };
+      document.getElementById('fractionLabel').innerHTML = labels[denominator];
+    }
+    setFraction(2);
+
+
+    /* --- 互動教具 2: 小數定位板 --- */
+    let tenthsCount = 0;
+    let onesCount = 0;
+    
+    function addTenth(val) {
+      const tenthsVal = document.getElementById('tenthsVal');
+      const onesVal = document.getElementById('onesVal');
+      const tenthsBlocks = document.getElementById('tenthsBlocks');
+      const onesBlocks = document.getElementById('onesBlocks');
+      
+      tenthsCount++;
+      
+      if (tenthsCount >= 10) {
+        tenthsCount = 0;
+        onesCount++;
+        tenthsBlocks.innerHTML = '';
+        const strip = document.createElement('div');
+        strip.className = 'toy-strip';
+        onesBlocks.appendChild(strip);
+      } else {
+        const block = document.createElement('div');
+        block.className = 'toy-block';
+        tenthsBlocks.appendChild(block);
+      }
+      
+      tenthsVal.textContent = tenthsCount;
+      onesVal.textContent = onesCount;
+    }
+    
+    function resetDecimalBoard() {
+      tenthsCount = 0;
+      onesCount = 0;
+      document.getElementById('tenthsVal').textContent = '0';
+      document.getElementById('onesVal').textContent = '0';
+      document.getElementById('tenthsBlocks').innerHTML = '';
+      document.getElementById('onesBlocks').innerHTML = '';
+    }
+    resetDecimalBoard();
+
+
+    /* --- 互動教具 3: iWork「條件式反白」模擬 --- */
+    function checkAnswer() {
+      const cell1 = document.getElementById('ansCell');  // 分母
+      const cell2 = document.getElementById('ansCell2'); // 分子
+      const result = document.getElementById('checkResult');
+      
+      const val1 = cell1.value.trim(); // 分母
+      const val2 = cell2.value.trim(); // 分子
+      
+      cell1.className = 'input-cell';
+      cell2.className = 'input-cell';
+      
+      if (val1 === '' || val2 === '') {
+        result.innerHTML = '請在輸入格中填入分數的分子與分母';
+        result.style.color = 'var(--warning)';
+        return;
+      }
+      
+      if (val1 === '16' && val2 === '8') {
+        cell1.classList.add('correct');
+        cell2.classList.add('correct');
+        result.innerHTML = '🎉 答對了！觸發 <span class="math-frac"><span class="math-num">8</span><span class="math-den">16</span></span> 「橘色填充」條件式反白！';
+        result.style.color = 'var(--accent)';
+      } else if (val1 === '2' && val2 === '1') {
+        cell1.classList.add('correct');
+        cell2.classList.add('correct');
+        result.innerHTML = '🎉 答對了！<span class="math-frac"><span class="math-num">1</span><span class="math-den">2</span></span> 也是等值分數！（觸發條件式反白）';
+        result.style.color = 'var(--accent)';
+      } else {
+        cell1.classList.add('wrong');
+        cell2.classList.add('wrong');
+        result.innerHTML = '❌ 答錯了！觸發「紅字」錯誤反白規則。';
+        result.style.color = '#ff4d4d';
+      }
+    }
+
+
+    /* --- 互動教具 4: AI共創工作流說明切換 --- */
+    function showFlowStep(stepNum) {
+      const steps = document.querySelectorAll('.ai-flow-step');
+      const content = document.getElementById('flowContent');
+      
+      steps.forEach((step, i) => {
+        step.classList.remove('active');
+        if (i === (stepNum - 1)) {
+          step.classList.add('active');
+        }
+      });
+      
+      const flowTexts = {
+        1: "<b>第一步：概念發想 (教學法提供)</b><br>老師點出三四年級分數痛點（如：離散量轉換、等值分數拼圖）。AI Agent 根據 these 迷思，發想「魔法烘焙屋」的接單遊戲情境。",
+        2: "<b>第二步：快速原型 (HTML碼生成)</b><br>AI Agent 根據討論出的遊戲機制，在幾秒內生成 HTML5 遊戲主體架構，包含畫布渲染、基本拖曳與計分系統，給予老師實體可見的教學雛形。",
+        3: "<b>第三步：遞迴修改 (環境感知設計)</b><br>老師進行實測並提出修改意見（如：切蛋糕份數不夠直觀）。雙方共同研究出 `portal.js` 技術，自動偵測當前是隨身碟離線環境（維持相對路徑）或是 GitHub 雲端環境（覆寫為 Pages 絕對 URL），一舉解決學校的離線使用痛點！",
+        4: "<b>第四步：雲端部署 (GitHub Pages)</b><br>配置獨立 git 分流儲存庫與 `.gitignore` 機制。透過 Git 將修改完成的各單元（1.0 到 5.0，涵蓋 <span class='math-frac'><span class='math-num'>1</span><span class='math-den'>2</span></span> 到 <span class='math-frac'><span class='math-num'>2</span><span class='math-den'>4</span></span> 等分數單元）推送至 GitHub，完成雲端 Pages 部署。"
+      };
+      
+      content.innerHTML = flowTexts[stepNum];
+    }
+  
+    /* --- 圖片放大燈箱 (Modal) 邏輯 --- */
+    function openModal(imgSrc) {
+      const modal = document.getElementById('imageModal');
+      const modalImg = document.getElementById('modalImg');
+      modalImg.src = imgSrc;
+      modal.style.display = 'flex';
+      modal.animate([
+        { opacity: 0 },
+        { opacity: 1 }
+      ], { duration: 200, fill: 'forwards' });
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('imageModal');
+      modal.style.display = 'none';
+    }
+
+    function openInNewTab(event) {
+      event.stopPropagation(); // 防止點擊按鈕觸發關閉 Modal
+      const modalImg = document.getElementById('modalImg');
+      window.open(modalImg.src, '_blank');
+    }
+  
+    /* --- 互動教具 5: 即時文字雲與 Firebase 雲端同步 --- */
+    // [EDITABLE] 如果要在代碼中直接綁定 Firebase 項目，請在此填寫組態：
+    const DEFAULT_FIREBASE_CONFIG = null; 
+
+    let currentQNum = 1;
+    let wordCloudData = { 1: [], 2: [] };
+    let firebaseDb = null;
+    let isFirebaseConnected = false;
+
+    // 隨機選取顏色
+    function getRandomWcColor() {
+      const colors = ['var(--primary)', 'var(--secondary)', 'var(--accent)', 'var(--warning)', '#ff4d4d', '#ff7300'];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    // 清理 Firebase 節點 Key 值
+    function sanitizeFirebaseKey(text) {
+      return text.replace(/[\.\$\#\[\]\/]/g, '_');
+    }
+
+    // 初始化 Firebase
+    function initFirebase() {
+      let config = null;
+      const configStr = localStorage.getItem('firebaseConfig');
+      if (configStr) {
+        try {
+          config = JSON.parse(configStr);
+        } catch (e) {
+          console.error("解析 LocalStorage 項目失敗:", e);
+        }
+      }
+
+      if (!config && typeof DEFAULT_FIREBASE_CONFIG !== 'undefined' && DEFAULT_FIREBASE_CONFIG) {
+        config = DEFAULT_FIREBASE_CONFIG;
+      }
+
+      if (config && config.apiKey && config.databaseURL) {
+        try {
+          if (firebase.apps.length === 0) {
+            firebase.initializeApp(config);
+          }
+          firebaseDb = firebase.database();
+          isFirebaseConnected = true;
+          updateFirebaseStatusUI(true, "🟢 Firebase 已連線 (即時同步中)");
+          setupFirebaseListeners();
+        } catch (err) {
+          console.error("Firebase 初始化失敗:", err);
+          updateFirebaseStatusUI(false, "🔴 Firebase 連線失敗 (配置有誤)");
+          isFirebaseConnected = false;
+          useMockDataMode();
+        }
+      } else {
+        updateFirebaseStatusUI(false, "⚠️ Firebase 狀態：本地模擬 (未設定)");
+        isFirebaseConnected = false;
+        useMockDataMode();
+      }
+    }
+
+    // 更新介面狀態
+    function updateFirebaseStatusUI(connected, text) {
+      const statusEl = document.getElementById('firebaseStatus');
+      if (statusEl) {
+        statusEl.textContent = text;
+        if (connected) {
+          statusEl.style.color = 'var(--accent)';
+          generateJoinQrCode();
+        } else {
+          statusEl.style.color = 'var(--warning)';
+          const qrSection = document.getElementById('qrCodeSection');
+          if (qrSection) qrSection.style.display = 'none';
+        }
+      }
+    }
+
+    // 本地模擬測試數據
+    function useMockDataMode() {
+      wordCloudData = {
+        1: [
+          { text: '分數概念', size: 38, color: 'var(--primary)', count: 4 },
+          { text: '除法直式', size: 28, color: 'var(--secondary)', count: 3 },
+          { text: '借位對齊', size: 24, color: 'var(--accent)', count: 2 },
+          { text: '應用題', size: 32, color: 'var(--warning)', count: 3.5 },
+          { text: '量感不足', size: 22, color: 'var(--primary)', count: 1.5 },
+          { text: '等值分數', size: 26, color: 'var(--accent)', count: 2.2 },
+          { text: '單位換算', size: 20, color: 'var(--secondary)', count: 1 }
+        ],
+        2: [
+          { text: '學生分心', size: 28, color: 'var(--warning)', count: 3 },
+          { text: '互動好玩', size: 38, color: 'var(--accent)', count: 4.5 },
+          { text: '優雅備課', size: 32, color: 'var(--primary)', count: 3.8 },
+          { text: '螢幕錄影', size: 24, color: 'var(--secondary)', count: 2.5 },
+          { text: '秩序混亂', size: 20, color: '#ff4d4d', count: 1.2 },
+          { text: '即時回饋', size: 26, color: 'var(--primary)', count: 2.8 },
+          { text: '口述說理', size: 30, color: 'var(--secondary)', count: 3.2 }
+        ]
+      };
+      renderWordCloud();
+    }
+
+    // 生成現場掃碼 QR Code
+    function generateJoinQrCode() {
+      const origin = window.location.origin;
+      const pathname = window.location.pathname;
+      let joinUrl = "";
+      
+      if (origin === "file://" || origin.startsWith("file:")) {
+        // 本地預覽使用預設 GitHub Pages 範例網址
+        const githubUser = 'linjingsiou-byte';
+        joinUrl = `https://${githubUser}.github.io/20260706-math-ipad/?join=true`;
+      } else {
+        joinUrl = origin + pathname + "?join=true";
+      }
+
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(joinUrl)}`;
+      
+      const qrThumb = document.getElementById('joinQrThumb');
+      if (qrThumb) qrThumb.src = qrUrl;
+      
+      const urlLink = document.getElementById('joinUrlText');
+      if (urlLink) {
+        urlLink.href = joinUrl;
+        urlLink.textContent = joinUrl;
+      }
+      
+      const qrSection = document.getElementById('qrCodeSection');
+      if (qrSection) qrSection.style.display = 'flex';
+    }
+
+    // 放大 QR Code
+    function zoomJoinQr() {
+      const qrThumb = document.getElementById('joinQrThumb');
+      if (qrThumb && qrThumb.src) {
+        openModal(qrThumb.src);
+      }
+    }
+
+    // 設定 Firebase 面版控制
+    function openWcSettings() {
+      const modal = document.getElementById('wcSettingsModal');
+      if (modal) {
+        const configStr = localStorage.getItem('firebaseConfig');
+        if (configStr) {
+          try {
+            const config = JSON.parse(configStr);
+            document.getElementById('fbApiKey').value = config.apiKey || '';
+            document.getElementById('fbDbUrl').value = config.databaseURL || '';
+            document.getElementById('fbProjectId').value = config.projectId || '';
+            document.getElementById('fbAppId').value = config.appId || '';
+          } catch (e) {}
+        } else if (DEFAULT_FIREBASE_CONFIG) {
+          document.getElementById('fbApiKey').value = DEFAULT_FIREBASE_CONFIG.apiKey || '';
+          document.getElementById('fbDbUrl').value = DEFAULT_FIREBASE_CONFIG.databaseURL || '';
+          document.getElementById('fbProjectId').value = DEFAULT_FIREBASE_CONFIG.projectId || '';
+          document.getElementById('fbAppId').value = DEFAULT_FIREBASE_CONFIG.appId || '';
+        }
+        modal.style.display = 'flex';
+      }
+    }
+
+    function closeWcSettings() {
+      document.getElementById('wcSettingsModal').style.display = 'none';
+    }
+
+    function saveFirebaseSettings() {
+      const apiKey = document.getElementById('fbApiKey').value.trim();
+      const databaseURL = document.getElementById('fbDbUrl').value.trim();
+      const projectId = document.getElementById('fbProjectId').value.trim();
+      const appId = document.getElementById('fbAppId').value.trim();
+
+      if (!apiKey || !databaseURL) {
+        alert("apiKey 與 databaseURL 為必要項目！");
+        return;
+      }
+
+      const config = {
+        apiKey: apiKey,
+        databaseURL: databaseURL,
+        projectId: projectId,
+        appId: appId
+      };
+
+      localStorage.setItem('firebaseConfig', JSON.stringify(config));
+      alert("Firebase 設定已儲存！網頁將自動重新整理以套用連線。");
+      window.location.reload();
+    }
+
+    // 設定 Firebase 資料監聽
+    function setupFirebaseListeners() {
+      // 1. 監聽當前講者啟用的問題編號
+      firebaseDb.ref('wordcloud/activeQuestion').on('value', snap => {
+        const qNum = snap.val();
+        if (qNum) {
+          currentQNum = parseInt(qNum);
+          syncPresenterUI(currentQNum);
+        }
+      });
+
+      // 2. 監聽題目一詞彙
+      firebaseDb.ref('wordcloud/q1').on('value', snap => {
+        const val = snap.val();
+        wordCloudData[1] = val ? parseFirebaseWords(val) : [];
+        if (currentQNum === 1) renderWordCloud();
+      });
+
+      // 3. 監聽題目二詞彙
+      firebaseDb.ref('wordcloud/q2').on('value', snap => {
+        const val = snap.val();
+        wordCloudData[2] = val ? parseFirebaseWords(val) : [];
+        if (currentQNum === 2) renderWordCloud();
+      });
+    }
+
+    // 將 Firebase 扁平化格式轉為文字雲繪製陣列，並計算大小
+    function parseFirebaseWords(firebaseObj) {
+      const words = [];
+      for (const key in firebaseObj) {
+        if (firebaseObj.hasOwnProperty(key)) {
+          const item = firebaseObj[key];
+          const count = item.count || 1;
+          const displaySize = Math.min(52, 20 + (count - 1) * 6);
+          words.push({
+            text: item.text,
+            size: displaySize,
+            color: item.color || getRandomWcColor(),
+            count: count
+          });
+        }
+      }
+      words.sort((a, b) => b.count - a.count);
+      return words;
+    }
+
+    // 同步講者端切換選項 UI
+    function syncPresenterUI(qNum) {
+      const btn1 = document.getElementById('btnQ1');
+      const btn2 = document.getElementById('btnQ2');
+      const qTitle = document.getElementById('wcQuestionTitle');
+      const input = document.getElementById('wcInput');
+      
+      if (qNum === 1) {
+        btn1.style.background = 'var(--primary)';
+        btn1.style.color = 'white';
+        btn1.style.border = 'none';
+        
+        btn2.style.background = 'rgba(255,255,255,0.05)';
+        btn2.style.color = 'var(--theme-text)';
+        btn2.style.border = '1px solid var(--theme-border)';
+        
+        qTitle.innerHTML = '❓ 題目一：在您班上，中低年級孩子學習數學時，最讓您頭痛的「卡關概念」是哪一個？';
+      } else {
+        btn2.style.background = 'var(--primary)';
+        btn2.style.color = 'white';
+        btn2.style.border = 'none';
+        
+        btn1.style.background = 'rgba(255,255,255,0.05)';
+        btn1.style.color = 'var(--theme-text)';
+        btn1.style.border = '1px solid var(--theme-border)';
+        
+        qTitle.innerHTML = '❓ 題目二：提到在數學課堂使用 iPad / 數位工具，您腦中第一個浮現的「關鍵詞」是什麼？';
+      }
+      
+      if (input) input.value = '';
+      renderWordCloud();
+    }
+
+    // 講者點選切換題目
+    function switchWordCloudQuestion(qNum) {
+      currentQNum = qNum;
+      syncPresenterUI(qNum);
+      if (isFirebaseConnected && firebaseDb) {
+        firebaseDb.ref('wordcloud/activeQuestion').set(qNum);
+      }
+    }
+
+    // 渲染文字雲 HTML
+    function renderWordCloud() {
+      const container = document.getElementById('wordCloudContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      
+      const words = wordCloudData[currentQNum];
+      if (!words || words.length === 0) {
+        container.innerHTML = '<div style="font-size: 16px; opacity: 0.4; pointer-events: none;">等待現場老師輸入關鍵詞...</div>';
+        return;
+      }
+      
+      const containerWidth = container.offsetWidth || 500;
+      const containerHeight = container.offsetHeight || 380;
+      
+      words.forEach((word, idx) => {
+        const span = document.createElement('span');
+        span.textContent = word.text;
+        span.style.position = 'absolute';
+        span.style.fontSize = `${word.size}px`;
+        span.style.color = word.color;
+        span.style.fontWeight = 'bold';
+        span.style.transition = 'all 0.4s ease';
+        span.style.cursor = 'pointer';
+        span.style.textShadow = '0 2px 10px rgba(0,0,0,0.4)';
+        span.className = 'wordcloud-word';
+        
+        let x, y;
+        if (idx === 0) {
+          x = containerWidth / 2 - 50;
+          y = containerHeight / 2 - 20;
+        } else {
+          const angle = (idx * 137.5) * (Math.PI / 180);
+          const radius = Math.min(containerWidth, containerHeight) * 0.14 * Math.sqrt(idx);
+          x = containerWidth / 2 + radius * Math.cos(angle) - 40;
+          y = containerHeight / 2 + radius * Math.sin(angle) - 15;
+          
+          x = Math.max(20, Math.min(containerWidth - 140, x));
+          y = Math.max(20, Math.min(containerHeight - 50, y));
+        }
+        
+        span.style.left = `${x}px`;
+        span.style.top = `${y}px`;
+        
+        span.onclick = function() {
+          span.style.transform = 'scale(1.25)';
+          setTimeout(() => span.style.transform = 'scale(1)', 300);
+        };
+        
+        container.appendChild(span);
+      });
+    }
+
+    // 講者在簡報上直接提交詞彙 (本地或雲端)
+    function submitLocalWord() {
+      const input = document.getElementById('wcInput');
+      const text = input.value.trim();
+      if (!text) return;
+      if (text.length > 8) {
+        alert('請輸入 8 字以內的關鍵詞！');
+        return;
+      }
+      
+      if (isFirebaseConnected && firebaseDb) {
+        const wordKey = sanitizeFirebaseKey(text);
+        const wordRef = firebaseDb.ref(`wordcloud/q\${currentQNum}/\${wordKey}`);
+        wordRef.transaction(currentData => {
+          if (currentData) {
+            return {
+              text: text,
+              count: (currentData.count || 0) + 1,
+              color: currentData.color || getRandomWcColor()
+            };
+          } else {
+            return {
+              text: text,
+              count: 1,
+              color: getRandomWcColor()
+            };
+          }
+        });
+      } else {
+        const words = wordCloudData[currentQNum];
+        const existing = words.find(w => w.text === text);
+        if (existing) {
+          existing.size = Math.min(52, existing.size + 6);
+        } else {
+          words.push({
+            text: text,
+            size: 20,
+            color: getRandomWcColor()
+          });
+        }
+        renderWordCloud();
+      }
+      
+      input.value = '';
+    }
+
+    // 清空當前題目文字雲
+    function clearLocalWordCloud() {
+      if (confirm("確定要清空當前題目的所有文字雲資料嗎？")) {
+        if (isFirebaseConnected && firebaseDb) {
+          firebaseDb.ref(`wordcloud/q\${currentQNum}`).remove();
+        } else {
+          wordCloudData[currentQNum] = [];
+          renderWordCloud();
+        }
+      }
+    }
+
+    // ---------------------------------
+    // 手機加入端 (Participant Mode) 業務邏輯
+    // ---------------------------------
+    function initJoinMode() {
+      // 隱藏簡報本體 UI
+      const container = document.getElementById('presentationContainer');
+      if (container) container.style.display = 'none';
+      
+      // 顯示手機加入端 UI
+      const joinContainer = document.getElementById('joinContainer');
+      if (joinContainer) joinContainer.style.display = 'flex';
+
+      // 載入設定
+      let config = null;
+      const configStr = localStorage.getItem('firebaseConfig');
+      if (configStr) {
+        try { config = JSON.parse(configStr); } catch(e) {}
+      }
+      if (!config && typeof DEFAULT_FIREBASE_CONFIG !== 'undefined' && DEFAULT_FIREBASE_CONFIG) {
+        config = DEFAULT_FIREBASE_CONFIG;
+      }
+
+      if (config && config.apiKey && config.databaseURL) {
+        try {
+          if (firebase.apps.length === 0) {
+            firebase.initializeApp(config);
+          }
+          const db = firebase.database();
+          
+          // 監聽目前講者切換到的題目
+          db.ref('wordcloud/activeQuestion').on('value', snap => {
+            const qNum = snap.val() || 1;
+            currentQNum = parseInt(qNum);
+            
+            // 變更標題
+            const titleEl = document.getElementById('joinQuestionTitle');
+            if (titleEl) {
+              if (currentQNum === 1) {
+                titleEl.textContent = "❓ 題目一：在您班上，中低年級孩子學習數學時，最讓您頭痛的「卡關概念」是哪一個？";
+              } else {
+                titleEl.textContent = "❓ 題目二：提到在數學課堂使用 iPad / 數位工具，您腦中第一個浮現的「關鍵詞」是什麼？";
+              }
+            }
+            
+            // 顯示輸入區域
+            document.getElementById('joinInputArea').style.display = 'flex';
+            document.getElementById('joinSuccessMsg').style.display = 'none';
+          });
+          
+        } catch(err) {
+          console.error(err);
+          showJoinError("🔴 連線失敗，請檢查講者的 Firebase 設定");
+        }
+      } else {
+        showJoinError("⚠️ 講者尚未完成 Firebase 連線設定，無法提交");
+      }
+    }
+
+    function showJoinError(msg) {
+      const titleEl = document.getElementById('joinQuestionTitle');
+      if (titleEl) titleEl.innerHTML = `<span style="color: #ff4d4d; font-weight: bold;">\${msg}</span>`;
+      document.getElementById('joinInputArea').style.display = 'none';
+    }
+
+    // 手機端提交詞彙
+    function submitJoinWord() {
+      const input = document.getElementById('joinInput');
+      const text = input.value.trim();
+      if (!text) return;
+      if (text.length > 8) {
+        alert('請輸入 8 字以內的關鍵詞！');
+        return;
+      }
+
+      let config = null;
+      const configStr = localStorage.getItem('firebaseConfig');
+      if (configStr) {
+        try { config = JSON.parse(configStr); } catch(e) {}
+      }
+      if (!config && typeof DEFAULT_FIREBASE_CONFIG !== 'undefined' && DEFAULT_FIREBASE_CONFIG) {
+        config = DEFAULT_FIREBASE_CONFIG;
+      }
+
+      if (config && config.apiKey && config.databaseURL) {
+        try {
+          const db = firebase.database();
+          const wordKey = sanitizeFirebaseKey(text);
+          db.ref(`wordcloud/q\${currentQNum}/\${wordKey}`).transaction(currentData => {
+            if (currentData) {
+              return {
+                text: text,
+                count: (currentData.count || 0) + 1,
+                color: currentData.color || getRandomWcColor()
+              };
+            } else {
+              return {
+                text: text,
+                count: 1,
+                color: getRandomWcColor()
+              };
+            }
+          }, (error, committed) => {
+            if (error) {
+              alert("提交失敗：" + error.message);
+            } else {
+              // 提交成功，切換 UI
+              document.getElementById('joinInputArea').style.display = 'none';
+              document.getElementById('joinSuccessMsg').style.display = 'flex';
+              input.value = '';
+            }
+          });
+        } catch(e) {
+          alert("連線錯誤，無法提交。");
+        }
+      }
+    }
+
+    function resetJoinInput() {
+      document.getElementById('joinInputArea').style.display = 'flex';
+      document.getElementById('joinSuccessMsg').style.display = 'none';
+      document.getElementById('joinInput').value = '';
+      setTimeout(() => document.getElementById('joinInput').focus(), 50);
+    }
+
+    // ---------------------------------
+    // 路由與初始化
+    // ---------------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('join') || urlParams.get('mode') === 'join') {
+        initJoinMode();
+      } else {
+        initFirebase();
+        showSlide(currentSlideIndex);
+      }
+    });
+</script>
+
+  <!-- 全螢幕圖片燈箱 HTML -->
+  <div id="imageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); z-index: 9999; justify-content: center; align-items: center; cursor: zoom-out;" onclick="closeModal()">
+    <img id="modalImg" src="" alt="放大圖" style="max-width: 95%; max-height: 95%; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); object-fit: contain;">
+    <button onclick="openInNewTab(event)" style="position: absolute; top: 20px; right: 20px; background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 10000; font-size: 14px; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+      在新分頁打開 ↗
+    </button>
+  </div>
+
+  <!-- Firebase 設定面板彈窗 (Presenter 專用) -->
+  <div id="wcSettingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 20000; justify-content: center; align-items: center; font-family: 'Outfit', 'Inter', sans-serif;">
+    <div style="background: #111827; border: 1.5px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 25px; width: 90%; max-width: 460px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 18px; color: white;">
+      <h3 style="font-size: 20px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px; color: var(--secondary);">
+        ⚙ Firebase 連線設定
+      </h3>
+      <p style="font-size: 13.5px; opacity: 0.8; margin: 0; line-height: 1.45;">
+        請貼上您的 Firebase Web App 組態設定（前往 Firebase 網頁控制台 ➔ 專案設定 ➔ 您的應用程式中獲取）：
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label style="font-size: 12px; color: #a0aec0; display: block; margin-bottom: 4px;">apiKey</label>
+          <input type="text" id="fbApiKey" placeholder="AIzaSy..." style="width: 100%; height: 38px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0 10px; color: white; font-family: monospace; font-size: 13px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; color: #a0aec0; display: block; margin-bottom: 4px;">databaseURL (即時資料庫網址)</label>
+          <input type="text" id="fbDbUrl" placeholder="https://[project-id]-default-rtdb.firebaseio.com" style="width: 100%; height: 38px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0 10px; color: white; font-family: monospace; font-size: 13px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; color: #a0aec0; display: block; margin-bottom: 4px;">projectId</label>
+          <input type="text" id="fbProjectId" placeholder="my-math-app" style="width: 100%; height: 38px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0 10px; color: white; font-family: monospace; font-size: 13px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; color: #a0aec0; display: block; margin-bottom: 4px;">appId</label>
+          <input type="text" id="fbAppId" placeholder="1:1234567890:web:abcdef..." style="width: 100%; height: 38px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0 10px; color: white; font-family: monospace; font-size: 13px;">
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; margin-top: 5px;">
+        <button onclick="saveFirebaseSettings()" style="flex: 1; height: 40px; background: var(--primary); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer;">儲存設定</button>
+        <button onclick="closeWcSettings()" style="flex: 1; height: 40px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; font-weight: bold; cursor: pointer;">取消</button>
+      </div>
+      <div style="font-size: 12px; text-align: center; margin-top: 5px;">
+        <a href="https://console.firebase.google.com/" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: bold;">前往 Firebase 控制台 ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Participant Mode 手機端專用作答介面 HTML -->
+  <div id="joinContainer" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-dark); color: var(--text-dark); font-family: 'Outfit', 'Inter', sans-serif; justify-content: center; align-items: center; z-index: 10000; padding: 20px; box-sizing: border-box;">
+    <div style="background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 30px; width: 100%; max-width: 450px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 20px;">
+      <h2 style="font-size: 24px; font-weight: 800; color: var(--primary); margin: 0;">數學共備現場互動</h2>
+      <div style="height: 1px; background: rgba(255,255,255,0.08); width: 100%;"></div>
+      <div id="joinQuestionArea" style="min-height: 80px; display: flex; align-items: center; justify-content: center;">
+        <p id="joinQuestionTitle" style="font-size: 17px; font-weight: 600; line-height: 1.5; color: #ffffff; margin: 0;">等待講師啟動互動題目...</p>
+      </div>
+      <div id="joinInputArea" style="display: none; flex-direction: column; gap: 15px;">
+        <input type="text" id="joinInput" placeholder="請輸入關鍵詞 (1-8字)" style="width: 100%; height: 50px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; text-align: center; font-size: 18px; font-weight: bold; outline: none; transition: border-color 0.3s;" onkeydown="if(event.key==='Enter') submitJoinWord()">
+        <button onclick="submitJoinWord()" style="width: 100%; height: 50px; background: var(--primary); border: none; border-radius: 12px; color: white; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.3s;">送出關鍵詞</button>
+      </div>
+      <div id="joinSuccessMsg" style="display: none; color: var(--accent); font-weight: bold; font-size: 16px; flex-direction: column; gap: 10px; align-items: center;">
+        <span>✓ 提交成功！</span>
+        <span style="font-size: 13px; color: #a0aec0; font-weight: normal;">您可以繼續輸入其他關鍵詞</span>
+        <button onclick="resetJoinInput()" style="margin-top: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 8px; color: white; cursor: pointer; font-size: 14px;">再次輸入</button>
+      </div>
+      <div style="font-size: 12px; color: #718096; margin-top: 10px;">技術支持：Firebase Realtime Database</div>
+    </div>
+  </div>
+</body>
+</html>
